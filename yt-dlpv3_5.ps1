@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-# yt-dlp v3.5 — Fast Pinned-Start-Menu Edition
+# yt-dlp v3.6 — Fast Edition with Auto-Fallback
 
 # ==================== PATHS ====================
 $ScriptDir   = $PSScriptRoot
@@ -23,18 +23,14 @@ $DefaultConfig = @{
 
 # ==================== INIT ====================
 if (-not (Test-Path $OptionsDir)) { New-Item -ItemType Directory -Path $OptionsDir -Force | Out-Null }
-
-# Seed default.txt if missing
 if (-not (Test-Path $DefaultTxt)) {
     $DefaultConfig.DefaultFlags | Set-Content -Path $DefaultTxt -Encoding UTF8
 }
 
-# Load / merge config
 if (Test-Path $ConfigPath) {
     try {
         $raw = Get-Content -Raw $ConfigPath
         $Config = $raw | ConvertFrom-Json
-        # Merge any new keys from $DefaultConfig (for future updates)
         foreach ($key in $DefaultConfig.Keys) {
             if (-not $Config.PSObject.Properties[$key]) {
                 $Config | Add-Member -NotePropertyName $key -NotePropertyValue $DefaultConfig[$key]
@@ -44,7 +40,6 @@ if (Test-Path $ConfigPath) {
         $Config = $DefaultConfig | ConvertTo-Json -Depth 10 | ConvertFrom-Json
     }
 } else {
-    # Seed from existing default.txt if present
     $seed = (Get-Content -Raw $DefaultTxt -ErrorAction SilentlyContinue).Trim()
     if ($seed) { $DefaultConfig.DefaultFlags = $seed }
     $Config = $DefaultConfig | ConvertTo-Json -Depth 10 | ConvertFrom-Json
@@ -53,7 +48,6 @@ if (Test-Path $ConfigPath) {
 
 function Save-Config {
     $Config | ConvertTo-Json -Depth 10 | Set-Content -Path $ConfigPath -Encoding UTF8
-    # Keep default.txt in sync so you can still edit it manually if you want
     if ($Config.DefaultFlags) {
         $Config.DefaultFlags | Set-Content -Path $DefaultTxt -Encoding UTF8
     }
@@ -82,6 +76,14 @@ function Show-Header {
     Write-Host ("-" * 65) -ForegroundColor DarkGray
 }
 
+function Test-JsRuntime {
+    $js = @("deno","node","qjs","quickjs","node.exe")
+    foreach ($j in $js) {
+        if (Get-Command $j -ErrorAction SilentlyContinue) { return $true }
+    }
+    return $false
+}
+
 # ==================== FAST URL COLLECTOR ====================
 function Get-Urls {
     $urls = [System.Collections.Generic.List[string]]::new()
@@ -93,14 +95,12 @@ function Get-Urls {
         $line = Read-Host
         $trimmed = $line.Trim()
 
-        # Blank line = finish (if we have URLs)
         if ($trimmed -eq "") {
             if ($urls.Count -gt 0) { break }
             Write-Host "  No URLs yet. Paste a link or type 'settings'." -ForegroundColor DarkGray
             continue
         }
 
-        # Commands
         if ($trimmed -eq "settings") {
             Show-Settings
             Show-Header
@@ -113,7 +113,6 @@ function Get-Urls {
             exit
         }
 
-        # Regex extraction: catches https://... and www.... even inside a sentence
         $pattern = '(https?://[^\s"''<>]+|www\.[^\s"''<>]+)'
         $matches = [regex]::Matches($trimmed, $pattern)
 
@@ -137,16 +136,46 @@ function Get-Urls {
 
 # ==================== DOWNLOAD ENGINE ====================
 function Build-Flags {
-    $parts = [System.Collections.Generic.List[string]]::new()
+    param([int]$Attempt = 1)
 
-    # Base flags from config (synced with default.txt)
+    $parts = [System.Collections.Generic.List[string]]::new()
     $base = $Config.DefaultFlags
     if ([string]::IsNullOrWhiteSpace($base)) {
         $base = "-f bestaudio --extract-audio --audio-format m4a --audio-quality 0 --embed-thumbnail --add-metadata --no-playlist"
     }
-    $parts.Add($base)
 
-    # Smart global options
+    switch ($Attempt) {
+        1 {
+            # Your configured flags exactly as saved
+            $parts.Add($base)
+        }
+        2 {
+            # Fallback: try bestaudio/best (or whatever/best)
+            $fallback = $base
+            if ($fallback -match '-f\s+("[^"]+"|\S+)') {
+                $fmt = ($matches[1] -replace '"','')
+                if ($fmt -notmatch '/best$') {
+                    $fallback = $fallback -replace '-f\s+("[^"]+"|\S+)', "-f $fmt/best"
+                    Write-Host "  Fallback: format '$fmt' → '$fmt/best'" -ForegroundColor Yellow
+                } else {
+                    $fallback = $fallback -replace '-f\s+("[^"]+"|\S+)', ''
+                    Write-Host "  Fallback: removed format filter" -ForegroundColor Yellow
+                }
+            } else {
+                $fallback = "-f bestaudio/best $fallback"
+                Write-Host "  Fallback: using 'bestaudio/best'" -ForegroundColor Yellow
+            }
+            $parts.Add($fallback)
+        }
+        3 {
+            # Nuclear fallback: force 'best' combined stream
+            # --extract-audio will still rip the audio track afterward
+            $fallback = $base -replace '-f\s+("[^"]+"|\S+)', ''
+            $parts.Add("-f best $fallback")
+            Write-Host "  Fallback: using 'best' (combined stream)" -ForegroundColor Yellow
+        }
+    }
+
     if ($Config.SponsorBlock)        { $parts.Add("--sponsorblock-remove all") }
     if ($Config.UseArchive -and $Config.ArchivePath) {
         $parts.Add("--download-archive `"$($Config.ArchivePath)`"")
@@ -155,12 +184,10 @@ function Build-Flags {
         $parts.Add("--concurrent-fragments $($Config.ConcurrentFragments)")
     }
 
-    # Output directory
     $out = $Config.OutputPath
     if (-not (Test-Path $out)) { New-Item -ItemType Directory -Path $out -Force | Out-Null }
     $parts.Add("-o `"$out\%(title)s.%(ext)s`"")
 
-    # Resume & stability
     $parts.Add("--continue")
     $parts.Add("--retries 10")
 
@@ -170,7 +197,6 @@ function Build-Flags {
 function Start-Downloads {
     param([array]$Urls)
 
-    $flags     = Build-Flags
     $startTime = Get-Date
     $outDir    = $Config.OutputPath
 
@@ -178,21 +204,36 @@ function Start-Downloads {
         Write-Host ""
         Write-Host "Downloading: $url" -ForegroundColor Cyan
 
-        $cmd = "yt-dlp $flags `"$url`""
-        Write-Host "  $cmd" -ForegroundColor DarkGray
-        Write-Host ""
-
-        try {
-            Invoke-Expression $cmd
-            if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-                Write-Host "  yt-dlp exited with code $LASTEXITCODE" -ForegroundColor Yellow
+        $success = $false
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            if ($attempt -gt 1) {
+                Write-Host ""
+                Write-Host "Attempt $attempt : Retrying with fallback..." -ForegroundColor Yellow
             }
-        } catch {
-            Write-Host "  ERROR: $_" -ForegroundColor Red
+
+            $flags = Build-Flags -Attempt $attempt
+            $cmd   = "yt-dlp $flags `"$url`""
+            Write-Host "  $cmd" -ForegroundColor DarkGray
+            Write-Host ""
+
+            Invoke-Expression $cmd
+            $exitCode = $LASTEXITCODE
+
+            if ($exitCode -eq 0) {
+                $success = $true
+                break
+            }
+
+            if ($attempt -eq 3) {
+                Write-Host "  Failed after all fallback attempts." -ForegroundColor Red
+            }
+        }
+
+        if (-not $success) {
+            Write-Host "  SKIPPED: $url" -ForegroundColor Red
         }
     }
 
-    # Post-download: Apple Music
     if ($Config.AppleMusic.Enabled) {
         Move-NewFilesToAppleMusic -StartTime $startTime -OutputDir $outDir
     }
@@ -269,7 +310,6 @@ function Show-Settings {
                 Save-Config
             }
             "3" {
-                # Toggle --no-playlist inside the flags string
                 if ($Config.DefaultFlags -match '--no-playlist') {
                     $Config.DefaultFlags = $Config.DefaultFlags -replace '--no-playlist', '--yes-playlist'
                 } elseif ($Config.DefaultFlags -match '--yes-playlist') {
@@ -314,6 +354,14 @@ function Show-Settings {
 
 # ==================== MAIN ====================
 Show-Header
+
+if (-not (Test-JsRuntime)) {
+    Write-Host "WARNING: No JavaScript runtime found (Deno/Node/QuickJS)." -ForegroundColor Red
+    Write-Host "YouTube may fail or skip formats. Fix it:" -ForegroundColor Yellow
+    Write-Host "  winget install deno     or     winget install OpenJS.NodeJS" -ForegroundColor White
+    Write-Host ""
+}
+
 $urls = Get-Urls
 if ($urls.Count -gt 0) {
     Start-Downloads -Urls $urls
