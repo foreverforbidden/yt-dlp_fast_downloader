@@ -1,0 +1,21 @@
+﻿{
+    "AppleMusic":  {
+                       "Path":  "C:\\Users\\hulaj\\Music\\Apple Music\\Media\\Automatically Add to Apple Music",
+                       "Enabled":  true
+                   },
+    "Download":  {
+                     "EmbedSubs":  false,
+                     "CustomFlags":  "",
+                     "AddMetadata":  true,
+                     "ConcurrentFragments":  4,
+                     "CookiesFromBrowser":  "",
+                     "ArchivePath":  "C:\\Users\\hulaj\\Documents\\cpp\\powershell_scripts\\yt-dlp_blazing_fast\\download_archive.txt",
+                     "Preset":  "default",
+                     "OutputPath":  "C:\\Users\\hulaj\\Videos",
+                     "Playlist":  false,
+                     "SubLangs":  "en",
+                     "EmbedThumbnail":  true,
+                     "SponsorBlock":  true,
+                     "UseArchive":  true
+                 }
+}

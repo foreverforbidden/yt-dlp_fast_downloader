@@ -1,0 +1,1 @@
+"# yt-dlp_fast_downloader"  initgit add README.mdgit commit -m "first commit"git branch -M maingit remote add origin git@github.com:foreverforbidden/yt-dlp_fast_downloader.gitgit push -u origin main
