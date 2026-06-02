@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-# yt-dlp v2 — Fast Pinned-Start-Menu Edition
+# yt-dlp v3.5 — Fast Pinned-Start-Menu Edition
 
 # ==================== PATHS ====================
 $ScriptDir   = $PSScriptRoot

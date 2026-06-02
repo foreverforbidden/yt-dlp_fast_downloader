@@ -17,5 +17,11 @@
                      "EmbedThumbnail":  true,
                      "SponsorBlock":  true,
                      "UseArchive":  true
-                 }
+                 },
+    "OutputPath":  "C:\\Users\\hulaj\\Videos",
+    "ConcurrentFragments":  4,
+    "DefaultFlags":  "-f bestaudio --extract-audio --audio-quality 0 --embed-thumbnail --add-metadata --no-playlist",
+    "UseArchive":  true,
+    "ArchivePath":  "C:\\Users\\hulaj\\Documents\\cpp\\powershell_scripts\\yt-dlp_blazing_fast\\download_archive.txt",
+    "SponsorBlock":  false
 }
