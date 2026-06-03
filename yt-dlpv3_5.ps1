@@ -68,7 +68,7 @@ function Show-Header {
     $am   = if ($Config.AppleMusic.Enabled) { "ON" } else { "OFF" }
     $amC  = if ($Config.AppleMusic.Enabled) { "Green" } else { "Red" }
 
-    Write-Host "yt-dlp v2  |  " -NoNewline -ForegroundColor Cyan
+    Write-Host "yt-dlp v3.6  |  " -NoNewline -ForegroundColor Cyan
     Write-Host "$mode Mode" -NoNewline -ForegroundColor Yellow
     Write-Host "  |  Apple Music: " -NoNewline
     Write-Host $am -NoNewline -ForegroundColor $amC
