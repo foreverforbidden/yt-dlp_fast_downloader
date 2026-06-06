@@ -1,7 +1,7 @@
 ﻿{
     "AppleMusic":  {
                        "Path":  "C:\\Users\\hulaj\\Music\\Apple Music\\Media\\Automatically Add to Apple Music",
-                       "Enabled":  true
+                       "Enabled":  false
                    },
     "Download":  {
                      "EmbedSubs":  false,
@@ -20,7 +20,7 @@
                  },
     "OutputPath":  "C:\\Users\\hulaj\\Videos",
     "ConcurrentFragments":  4,
-    "DefaultFlags":  "-f bestaudio --extract-audio --audio-quality 0 --embed-thumbnail --add-metadata --no-playlist",
+    "DefaultFlags":  "--bestvideo",
     "UseArchive":  true,
     "ArchivePath":  "C:\\Users\\hulaj\\Documents\\cpp\\powershell_scripts\\yt-dlp_blazing_fast\\download_archive.txt",
     "SponsorBlock":  false
