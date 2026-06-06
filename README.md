@@ -1,4 +1,4 @@
-# yt-dlp v2 — PowerShell Downloader
+# yt-dlp v3.6 — PowerShell Downloader
 
 A fast, modular PowerShell script for downloading audio/video from YouTube (and beyond) using **yt-dlp**. Designed to be pinned to your Start Menu — open it, paste links, hit Enter, done.
 
@@ -7,10 +7,10 @@ A fast, modular PowerShell script for downloading audio/video from YouTube (and 
 ## 🚀 Quick Start
 
 1. Make sure **yt-dlp** is installed and available in your PATH.
-2. Save `yt-dlpv2.ps1` in a folder (e.g., `Documents\powershell_scripts\yt-dlp_blazing_fast`).
+2. Save `yt-dlpv3_5.ps1` in a folder (e.g., `Documents\powershell_scripts\yt-dlp_blazing_fast`).
 3. Create a shortcut to PowerShell with the argument:
    ```
-   powershell -NoExit -File "C:\Path\To\yt-dlpv2.ps1"
+   powershell -NoExit -File "C:\Path\To\yt-dlpv3_5.ps1"
    ```
 4. Pin the shortcut to your Start Menu / taskbar.
 5. Click → paste URLs → Enter on a blank line → downloading starts automatically.
